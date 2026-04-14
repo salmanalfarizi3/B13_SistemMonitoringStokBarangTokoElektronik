@@ -23,4 +23,11 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             // 1. String koneksi
             string connectionString = @"Data Source=LAPTOP-ANV5L9LG\ALFA; Initial Catalog=DB_TokoElektronik; Integrated Security=True; TrustServerCertificate=True";
 
+            // 2. Validasi input kosong
+            if (string.IsNullOrEmpty(textBox1.Text) || string.IsNullOrEmpty(textBox2.Text))
+            {
+                MessageBox.Show("Username atau Password tidak boleh kosong!", "Peringatan");
+                return;
+            }
+
             
