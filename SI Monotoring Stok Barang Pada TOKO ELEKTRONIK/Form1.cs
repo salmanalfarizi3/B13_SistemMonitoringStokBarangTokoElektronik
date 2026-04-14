@@ -177,4 +177,7 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
 
             if (e.RowIndex >= 0)
             {
-               
+                try
+                {
+                    DataGridViewRow row = dataGridView1.Rows[e.RowIndex];
+                  
