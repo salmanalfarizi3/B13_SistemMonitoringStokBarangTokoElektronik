@@ -175,4 +175,6 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                 return; 
             }
 
-            
+            if (e.RowIndex >= 0)
+            {
+               
