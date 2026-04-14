@@ -70,4 +70,13 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             }
         }
 
-       
+        // 3. Tombol UPDATE (Ubah Barang)
+        private void button2_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    string query = "UPDATE Barang SET Nama_Barang=@nm, Kategori=@kt, Harga=@hr, Stok=@st WHERE ID_Barang=@id";
+                   
