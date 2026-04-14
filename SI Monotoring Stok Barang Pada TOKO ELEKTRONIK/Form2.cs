@@ -61,4 +61,15 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                     }
                 }
             }
-           
+            catch (Exception ex)
+            {
+                MessageBox.Show("Eror Koneksi: " + ex.Message);
+            }
+        }
+
+        private void Form2_Load(object sender, EventArgs e)
+        {
+            textBox1.Focus();
+        }
+    }
+}
