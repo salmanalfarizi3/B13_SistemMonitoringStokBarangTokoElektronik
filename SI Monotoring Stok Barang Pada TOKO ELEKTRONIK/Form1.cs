@@ -180,4 +180,5 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                 try
                 {
                     DataGridViewRow row = dataGridView1.Rows[e.RowIndex];
-                  
+                    txtID.Text = row.Cells[0].Value.ToString();
+                   
