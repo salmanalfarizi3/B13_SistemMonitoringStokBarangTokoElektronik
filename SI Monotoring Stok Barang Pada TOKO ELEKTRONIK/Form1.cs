@@ -117,4 +117,33 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
 
             if (MessageBox.Show("Yakin mau hapus barang ini?", "Konfirmasi", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
-                
+                try
+                {
+                    using (SqlConnection conn = new SqlConnection(connectionString))
+                    {
+                        conn.Open();
+                        string query = "DELETE FROM Barang WHERE ID_Barang=@id";
+                        SqlCommand cmd = new SqlCommand(query, conn);
+                        cmd.Parameters.AddWithValue("@id", txtID.Text);
+                        cmd.ExecuteNonQuery();
+                        MessageBox.Show("Data berhasil dibuang!");
+                    }
+                    button4_Click(sender, e); // Panggil fungsi Clear
+                }
+                catch (Exception ex) { MessageBox.Show("Error: " + ex.Message); }
+            }
+        }
+
+        // 5. Tombol CLEAR / BACK
+        private void button4_Click(object sender, EventArgs e)
+        {
+            txtID.Clear();
+            txtNama.Clear();
+            txtKat.Clear();
+            txtHarga.Clear();
+            txtStok.Clear();
+            txtID.ReadOnly = false;
+            TampilData(); 
+        }
+
+       
