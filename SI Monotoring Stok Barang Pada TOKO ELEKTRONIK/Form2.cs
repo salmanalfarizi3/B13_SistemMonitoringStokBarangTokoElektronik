@@ -13,4 +13,9 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
 {
     public partial class Form2 : Form //
     {
+        public Form2()
+        {
+            InitializeComponent();
+        }
+
        
