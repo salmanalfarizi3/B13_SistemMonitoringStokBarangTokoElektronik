@@ -44,4 +44,21 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                 {
                     conn.Open();
                     string query = "INSERT INTO Barang (ID_Barang, Nama_Barang, Kategori, Harga, Stok) VALUES (@id, @nm, @kt, @hr, @st)";
-                    
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    cmd.Parameters.AddWithValue("@id", txtID.Text);
+                    cmd.Parameters.AddWithValue("@nm", txtNama.Text);
+                    cmd.Parameters.AddWithValue("@kt", txtKat.Text);
+                    cmd.Parameters.AddWithValue("@hr", txtHarga.Text);
+                    cmd.Parameters.AddWithValue("@st", txtStok.Text);
+                    cmd.ExecuteNonQuery();
+
+                    // Otomatis catat ke Riwayat
+                    string queryRiwayat = "INSERT INTO Riwayat_Masuk (ID_Barang, Nama_Barang, Jumlah_Masuk, Keterangan) VALUES (@id, @nm, @st, 'Barang Baru')";
+                    SqlCommand cmdLog = new SqlCommand(queryRiwayat, conn);
+                    cmdLog.Parameters.AddWithValue("@id", txtID.Text);
+                    cmdLog.Parameters.AddWithValue("@nm", txtNama.Text);
+                    cmdLog.Parameters.AddWithValue("@st", txtStok.Text);
+                    cmdLog.ExecuteNonQuery();
+
+                    MessageBox.Show("Data Berhasil Disimpan!");
+              
