@@ -21,4 +21,18 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             TampilData();
         }
 
+        // 1. Fungsi Tampil Data Barang Utama
+        void TampilData()
+        {
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "SELECT * FROM Barang";
+                SqlDataAdapter da = new SqlDataAdapter(query, conn);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                dataGridView1.DataSource = dt;
+            }
+        }
+
        
