@@ -157,4 +157,7 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                     // Mengambil 5 kolom agar pas (ID, Nama, Jumlah, Ket, Tanggal)
                     string query = "SELECT ID_Barang, Nama_Barang, Jumlah_Masuk, Keterangan, Tanggal_Masuk FROM Riwayat_Masuk ORDER BY Tanggal_Masuk DESC";
                     SqlDataAdapter da = new SqlDataAdapter(query, conn);
-                    Da
+                    DataTable dt = new DataTable();
+                    da.Fill(dt);
+                    dataGridView1.DataSource = dt;
+                   
