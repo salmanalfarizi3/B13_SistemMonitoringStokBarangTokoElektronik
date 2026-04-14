@@ -79,4 +79,42 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                 {
                     conn.Open();
                     string query = "UPDATE Barang SET Nama_Barang=@nm, Kategori=@kt, Harga=@hr, Stok=@st WHERE ID_Barang=@id";
-                   
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    cmd.Parameters.AddWithValue("@id", txtID.Text);
+                    cmd.Parameters.AddWithValue("@nm", txtNama.Text);
+                    cmd.Parameters.AddWithValue("@kt", txtKat.Text);
+                    cmd.Parameters.AddWithValue("@hr", txtHarga.Text);
+                    cmd.Parameters.AddWithValue("@st", txtStok.Text);
+                    cmd.ExecuteNonQuery();
+
+                    // Catat ke Riwayat saat Update
+                    string queryRiwayat = "INSERT INTO Riwayat_Masuk (ID_Barang, Nama_Barang, Jumlah_Masuk, Keterangan) VALUES (@id, @nm, @st, 'Update Stok')";
+                    SqlCommand cmdLog = new SqlCommand(queryRiwayat, conn);
+                    cmdLog.Parameters.AddWithValue("@id", txtID.Text);
+                    cmdLog.Parameters.AddWithValue("@nm", txtNama.Text);
+                    cmdLog.Parameters.AddWithValue("@st", txtStok.Text);
+                    cmdLog.ExecuteNonQuery();
+
+                    MessageBox.Show("Sipp! Data berhasil diubah.");
+                    txtID.ReadOnly = false;
+                }
+                TampilData();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Gagal update: " + ex.Message);
+            }
+        }
+
+        // 4. Tombol DELETE
+        private void button3_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(txtID.Text))
+            {
+                MessageBox.Show("Pilih dulu data yang mau dihapus di tabel!");
+                return;
+            }
+
+            if (MessageBox.Show("Yakin mau hapus barang ini?", "Konfirmasi", MessageBoxButtons.YesNo) == DialogResult.Yes)
+            {
+                
