@@ -18,4 +18,9 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             InitializeComponent();
         }
 
-       
+        private void button1_Click(object sender, EventArgs e)
+        {
+            // 1. String koneksi
+            string connectionString = @"Data Source=LAPTOP-ANV5L9LG\ALFA; Initial Catalog=DB_TokoElektronik; Integrated Security=True; TrustServerCertificate=True";
+
+            
