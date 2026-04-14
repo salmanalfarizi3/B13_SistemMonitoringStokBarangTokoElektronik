@@ -1,0 +1,41 @@
+USE DB_TokoElektronik;
+GO
+
+
+IF OBJECT_ID('Riwayat_Masuk', 'U') IS NOT NULL DROP TABLE Riwayat_Masuk;
+IF OBJECT_ID('Barang', 'U') IS NOT NULL DROP TABLE Barang;
+IF OBJECT_ID('Users', 'U') IS NOT NULL DROP TABLE Users;
+GO
+
+-- 2. BUAT tabel Users
+CREATE TABLE Users (
+    Username VARCHAR(50) PRIMARY KEY,
+    Password VARCHAR(50),
+    Role VARCHAR(20)
+);
+
+-- 3. BUAT tabel Barang
+CREATE TABLE Barang (
+    ID_Barang CHAR(5) PRIMARY KEY,
+    Nama_Barang VARCHAR(100),
+    Kategori VARCHAR(50),
+    Harga INT,
+    Stok INT
+);
+
+-- 4. BUAT tabel Riwayat_Masuk (Mencatat Tanggal Otomatis)
+CREATE TABLE Riwayat_Masuk (
+    ID_Riwayat INT PRIMARY KEY IDENTITY(1,1),
+    ID_Barang CHAR(5),
+    Nama_Barang VARCHAR(100),
+    Jumlah_Masuk INT,
+    Keterangan VARCHAR(50), -- Tambahan: buat bedain Insert/Update
+    Tanggal_Masuk DATETIME DEFAULT GETDATE(), 
+    FOREIGN KEY (ID_Barang) REFERENCES Barang(ID_Barang)
+);
+GO
+
+-- 5. ISI data awal
+INSERT INTO Users VALUES ('admin', 'admin123', 'Admin'), ('kasir', 'kasir123', 'Kasir');
+INSERT INTO Barang VALUES ('B001', 'Laptop Asus', 'Komputer', 8000000, 10);
+GO
