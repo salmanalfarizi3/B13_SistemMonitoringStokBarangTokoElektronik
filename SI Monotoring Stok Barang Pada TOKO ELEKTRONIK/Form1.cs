@@ -35,4 +35,13 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             }
         }
 
-       
+        // 2. Tombol INSERT (Tambah Barang)
+        private void button1_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    string query = "INSERT INTO Barang (ID_Barang, Nama_Barang, Kategori, Harga, Stok) VALUES (@id, @nm, @kt, @hr, @st)";
+                    
