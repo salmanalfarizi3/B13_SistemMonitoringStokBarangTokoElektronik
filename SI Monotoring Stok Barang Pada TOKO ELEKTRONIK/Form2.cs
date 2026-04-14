@@ -30,4 +30,16 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                 return;
             }
 
-            
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // 3. Query disesuaikan dengan tabel Users (Username & Password)
+                    string query = "SELECT COUNT(*) FROM Users WHERE Username=@user AND Password=@pass";
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    cmd.Parameters.AddWithValue("@user", textBox1.Text.Trim());
+                    cmd.Parameters.AddWithValue("@pass", textBox2.Text.Trim());
+
+                    int hasil = (int)cmd.ExecuteScalar();
