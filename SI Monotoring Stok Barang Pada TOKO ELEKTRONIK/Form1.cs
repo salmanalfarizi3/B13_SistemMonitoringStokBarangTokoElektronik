@@ -162,4 +162,8 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                     dataGridView1.DataSource = dt;
                     MessageBox.Show("Menampilkan Riwayat (Log) Transaksi");
                 }
-         
+            }
+            catch (Exception ex) { MessageBox.Show("Gagal: " + ex.Message); }
+        }
+
+        
