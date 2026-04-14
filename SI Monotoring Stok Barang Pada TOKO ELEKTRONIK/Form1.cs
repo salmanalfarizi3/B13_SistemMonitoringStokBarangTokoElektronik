@@ -167,3 +167,6 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
         }
 
         
+        private void dataGridView1_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+          
