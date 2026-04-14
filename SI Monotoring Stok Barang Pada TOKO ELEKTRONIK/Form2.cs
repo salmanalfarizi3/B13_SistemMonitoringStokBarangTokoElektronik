@@ -43,3 +43,22 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                     cmd.Parameters.AddWithValue("@pass", textBox2.Text.Trim());
 
                     int hasil = (int)cmd.ExecuteScalar();
+
+                    if (hasil > 0)
+                    {
+                        MessageBox.Show("Login Berhasil! Selamat datang, " + textBox1.Text);
+
+                        // 4. Buka Form Utama (Form1)
+                        Form1 frmUtama = new Form1();
+                        frmUtama.Show();
+
+                        // Sembunyikan Form Login
+                        this.Hide();
+                    }
+                    else
+                    {
+                        MessageBox.Show("Username atau Password salah!", "Gagal");
+                    }
+                }
+            }
+           
