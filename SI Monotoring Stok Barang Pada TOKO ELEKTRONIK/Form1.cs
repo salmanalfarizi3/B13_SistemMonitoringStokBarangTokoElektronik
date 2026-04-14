@@ -61,4 +61,13 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                     cmdLog.ExecuteNonQuery();
 
                     MessageBox.Show("Data Berhasil Disimpan!");
-              
+                }
+                TampilData();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error: " + ex.Message);
+            }
+        }
+
+       
