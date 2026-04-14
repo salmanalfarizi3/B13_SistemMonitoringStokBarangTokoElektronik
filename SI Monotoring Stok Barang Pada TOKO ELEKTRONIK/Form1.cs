@@ -186,4 +186,13 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                     txtHarga.Text = row.Cells[3].Value.ToString();
                     txtStok.Text = row.Cells[4].Value.ToString();
                     txtID.ReadOnly = true;
-               
+                }
+                catch { /* Abaikan jika kolom riwayat yang diklik */ }
+            }
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+        }
+    }
+}
