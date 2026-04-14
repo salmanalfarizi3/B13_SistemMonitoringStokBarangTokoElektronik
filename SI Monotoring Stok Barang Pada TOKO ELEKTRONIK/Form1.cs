@@ -183,4 +183,5 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                     txtID.Text = row.Cells[0].Value.ToString();
                     txtNama.Text = row.Cells[1].Value.ToString();
                     txtKat.Text = row.Cells[2].Value.ToString();
+                    txtHarga.Text = row.Cells[3].Value.ToString();
                     
