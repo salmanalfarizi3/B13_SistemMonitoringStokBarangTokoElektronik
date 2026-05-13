@@ -84,4 +84,83 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             MuatRiwayat();
         }
 
-       
+        // 3. TOMBOL TEST INJECTION 
+        private void btnTestInjection_Click(object sender, EventArgs e)
+        {
+            if (!_modeInjection) JalankanInjection();
+            else btnReset_Click(null, null);
+        }
+
+        void JalankanInjection()
+        {
+            
+            if (string.IsNullOrWhiteSpace(txtCari.Text))
+            {
+                txtCari.Text = "' OR 1=1 --";
+            }
+
+            string sql = @"
+                SELECT
+                    r.ID_Riwayat                                AS [No],
+                    r.ID_Barang                                 AS [ID Barang],
+                    r.Nama_Barang                               AS [Nama Barang],
+                    r.Jumlah_Masuk                              AS [Jumlah Masuk],
+                    r.Keterangan                                AS [Keterangan],
+                    ISNULL(s.Nama_Supplier, '-')                AS [Nama Supplier],
+                    CONVERT(VARCHAR, r.Tanggal_Masuk, 105)      AS [Tanggal],
+                    CONVERT(VARCHAR, r.Tanggal_Masuk, 108)      AS [Jam]
+                FROM Riwayat_Masuk r
+                LEFT JOIN Supplier s ON r.ID_Supplier = s.ID_Supplier
+                WHERE r.Nama_Barang = '" + txtCari.Text + "'";
+
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    DataTable dt = new DataTable();
+                    SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+                    da.Fill(dt);
+
+                    if (dt.Rows.Count > 0)
+                    {
+                        _modeInjection = true;
+
+                        // Buat tabel bayangan untuk tampilan HACKED
+                        DataTable dtHacked = dt.Clone();
+                        foreach (DataColumn col in dtHacked.Columns) col.DataType = typeof(string);
+
+                        // Isi semua baris hasil query dengan tulisan HACKED pada kolom yang diminta
+                        foreach (DataRow row in dt.Rows)
+                        {
+                            DataRow nr = dtHacked.NewRow();
+                            for (int i = 0; i < dt.Columns.Count; i++)
+                            {
+                                string colName = dt.Columns[i].ColumnName;
+                                // GANTI 3 KOLOM INI JADI HACKED
+                                if (colName == "No" || colName == "ID Barang" || colName == "Nama Barang")
+                                {
+                                    nr[i] = "HACKED";
+                                }
+                                else
+                                {
+                                    nr[i] = row[i].ToString();
+                                }
+                            }
+                            dtHacked.Rows.Add(nr);
+                        }
+
+                        _bindingSource.DataSource = dtHacked;
+                        lblTotal.Text = "⚠️ SQL INJECTION SUCCESS!";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error Injeksi: " + ex.Message);
+            }
+        }
+
+        private void btnKembali_Click(object sender, EventArgs e) => this.Close();
+    }
+}
