@@ -28,4 +28,10 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             textBox1.Focus();
         }
 
-      
+        private bool ValidasiInput()
+        {
+            string username = textBox1.Text.Trim();
+            string password = textBox2.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(username))
+       
