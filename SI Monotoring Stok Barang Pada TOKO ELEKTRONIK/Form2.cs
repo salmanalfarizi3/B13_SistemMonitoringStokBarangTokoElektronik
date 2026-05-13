@@ -15,3 +15,17 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             @"Data Source=LAPTOP-ANV5L9LG\ALFA; Initial Catalog=DB_TokoElektronik; " +
             @"Integrated Security=True; TrustServerCertificate=True";
 
+        public Form2()
+        {
+            InitializeComponent();
+        }
+
+        private void Form2_Load(object sender, EventArgs e)
+        {
+            textBox1.MaxLength = USERNAME_MAX;
+            textBox2.MaxLength = PASSWORD_MAX;
+            textBox2.PasswordChar = '●';
+            textBox1.Focus();
+        }
+
+      
