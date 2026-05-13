@@ -1,141 +1,429 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Data.SqlClient;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
 {
     public partial class Form1 : Form
     {
-        string connectionString = @"Data Source=LAPTOP-ANV5L9LG\ALFA; Initial Catalog=DB_TokoElektronik; Integrated Security=True; TrustServerCertificate=True";
+        private readonly string connectionString =
+            @"Data Source=LAPTOP-ANV5L9LG\ALFA; Initial Catalog=DB_TokoElektronik; " +
+            @"Integrated Security=True; TrustServerCertificate=True";
+
+        private BindingSource _bindingSource = new BindingSource();
+        private bool _sedangTampilRiwayat = false;
 
         public Form1()
         {
             InitializeComponent();
-            TampilData();
+
+            dataGridView1.AutoGenerateColumns = true;
+            dataGridView1.DataSource = _bindingSource;
+            bindingNavigator1.BindingSource = _bindingSource;
+
+            this.Load += (s, e) =>
+            {
+                PastikanViewAda();
+                MuatSupplierKeComboBox();
+                TampilData();
+                TampilTotalBarang();
+            };
+
+            txtHarga.KeyPress += ValidasiAngka;
+            txtStok.KeyPress += ValidasiAngkaBulat;
+
+            dataGridView1.CellDoubleClick += dataGridView1_CellDoubleClick;
         }
 
-        // 1. Fungsi Tampil Data Barang Utama
+        
+        //  MUAT SUPPLIER KE COMBOBOX
+        
+        void MuatSupplierKeComboBox()
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    DataTable dt = new DataTable();
+                    new SqlDataAdapter(
+                        "SELECT ID_Supplier, Nama_Supplier FROM Supplier ORDER BY Nama_Supplier",
+                        conn).Fill(dt);
+
+                    DataRow baris = dt.NewRow();
+                    baris["ID_Supplier"] = "";
+                    baris["Nama_Supplier"] = "-- Pilih Supplier --";
+                    dt.Rows.InsertAt(baris, 0);
+
+                    cmbSupplier.DataSource = dt;
+                    cmbSupplier.DisplayMember = "Nama_Supplier";
+                    cmbSupplier.ValueMember = "ID_Supplier";
+                    cmbSupplier.SelectedIndex = 0;
+                }
+            }
+            catch
+            {
+                if (cmbSupplier.Items.Count == 0)
+                {
+                    cmbSupplier.Items.Add("-- Tidak ada supplier --");
+                    cmbSupplier.SelectedIndex = 0;
+                }
+            }
+        }
+
+        
+        //  PastikanViewAda() — TAMBAH KOLOM Status Stok
+        //  Sesuaikan dengan ALTER VIEW di database SQL
+  
+        void PastikanViewAda()
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // Hapus view lama jika ada
+                    new SqlCommand(
+                        "IF EXISTS (SELECT 1 FROM sys.views WHERE name='vw_Barang') DROP VIEW vw_Barang;",
+                        conn).ExecuteNonQuery();
+
+                    
+                    string sqlView = @"
+                        CREATE VIEW vw_Barang AS
+                        SELECT 
+                            b.ID_Barang      AS [ID Barang], 
+                            b.Nama_Barang    AS [Nama Barang],
+                            b.Kategori, 
+                            b.Harga, 
+                            b.Stok,
+                            ISNULL(s.Nama_Supplier, '-') AS [Nama Supplier],
+                            CASE
+                                WHEN b.Stok = 0  THEN 'Habis'
+                                WHEN b.Stok < 5  THEN 'Menipis'
+                                WHEN b.Stok < 20 THEN 'Normal'
+                                ELSE                  'Aman'
+                            END AS [Status Stok]
+                        FROM Barang b
+                        LEFT JOIN Supplier s ON b.ID_Supplier = s.ID_Supplier;";
+
+                    new SqlCommand(sqlView, conn).ExecuteNonQuery();
+                }
+            }
+            catch { }
+        }
+
+        
+        //  TAMPIL DATA BARANG (menggunakan VIEW)
+        
         void TampilData()
         {
-            using (SqlConnection conn = new SqlConnection(connectionString))
+            _sedangTampilRiwayat = false;
+            button4.Text = "Bersihkan";
+
+            try
             {
-                conn.Open();
-                string query = "SELECT * FROM Barang";
-                SqlDataAdapter da = new SqlDataAdapter(query, conn);
-                DataTable dt = new DataTable();
-                da.Fill(dt);
-                dataGridView1.DataSource = dt;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    DataTable dt = new DataTable();
+                    new SqlDataAdapter(
+                        "SELECT * FROM vw_Barang ORDER BY [ID Barang]",
+                        conn).Fill(dt);
+
+                    _bindingSource.DataSource = null;
+                    _bindingSource.DataSource = dt;
+                    dataGridView1.DataSource = _bindingSource;
+                    dataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("❌ Gagal memuat data: " + ex.Message,
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        // 2. Tombol INSERT (Tambah Barang)
+        
+        //  PERBAIKAN 2: TampilRiwayat() — Gunakan vw_RiwayatMasuk
+       
+        void TampilRiwayat(string idBarang, string namaBarang)
+        {
+            _sedangTampilRiwayat = true;
+            button4.Text = "◀ Kembali ke Data Barang";
+
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    
+                    string sql = @"
+                        SELECT * FROM vw_RiwayatMasuk
+                        WHERE [ID Barang] = @ID
+                        ORDER BY [ID Riwayat] DESC";
+
+                    SqlCommand cmd = new SqlCommand(sql, conn);
+                    cmd.Parameters.AddWithValue("@ID", idBarang);
+
+                    DataTable dt = new DataTable();
+                    new SqlDataAdapter(cmd).Fill(dt);
+
+                    _bindingSource.DataSource = null;
+                    _bindingSource.DataSource = dt;
+                    dataGridView1.DataSource = _bindingSource;
+                    dataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("❌ Gagal memuat riwayat: " + ex.Message,
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        
+        //  TAMPIL TOTAL BARANG (menggunakan Stored Procedure)
+        
+        void TampilTotalBarang()
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    SqlCommand cmd = new SqlCommand("sp_CountBarang", conn);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    SqlParameter p = new SqlParameter("@Total", SqlDbType.Int)
+                    { Direction = ParameterDirection.Output };
+                    cmd.Parameters.Add(p);
+                    cmd.ExecuteNonQuery();
+                    this.Text = "MAXIMA ELECTRONICA | Total Barang: " + p.Value;
+                }
+            }
+            catch { }
+        }
+
+        
+        //  TOMBOL TAMBAH (sp_InsertBarang)
+        
         private void button1_Click(object sender, EventArgs e)
         {
+            if (!ValidasiInput(cekID: true)) return;
+
+            string idSupplier = "";
+            if (cmbSupplier.SelectedValue != null)
+                idSupplier = cmbSupplier.SelectedValue.ToString();
+
             try
             {
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    string query = "INSERT INTO Barang (ID_Barang, Nama_Barang, Kategori, Harga, Stok) VALUES (@id, @nm, @kt, @hr, @st)";
-                    SqlCommand cmd = new SqlCommand(query, conn);
-                    cmd.Parameters.AddWithValue("@id", txtID.Text);
-                    cmd.Parameters.AddWithValue("@nm", txtNama.Text);
-                    cmd.Parameters.AddWithValue("@kt", txtKat.Text);
-                    cmd.Parameters.AddWithValue("@hr", txtHarga.Text);
-                    cmd.Parameters.AddWithValue("@st", txtStok.Text);
+                    SqlCommand cmd = new SqlCommand("sp_InsertBarang", conn);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@ID_Barang", txtID.Text.Trim().ToUpper());
+                    cmd.Parameters.AddWithValue("@Nama_Barang", txtNama.Text.Trim());
+                    cmd.Parameters.AddWithValue("@Kategori", txtKat.Text.Trim());
+                    cmd.Parameters.AddWithValue("@Harga", decimal.Parse(txtHarga.Text.Replace(",", "")));
+                    cmd.Parameters.AddWithValue("@Stok", int.Parse(txtStok.Text));
+                    cmd.Parameters.AddWithValue("@ID_Supplier", idSupplier);
+
+                    SqlParameter outRows = new SqlParameter("@RowsAffected", SqlDbType.Int)
+                    { Direction = ParameterDirection.Output };
+                    cmd.Parameters.Add(outRows);
                     cmd.ExecuteNonQuery();
 
-                    // Otomatis catat ke Riwayat
-                    string queryRiwayat = "INSERT INTO Riwayat_Masuk (ID_Barang, Nama_Barang, Jumlah_Masuk, Keterangan) VALUES (@id, @nm, @st, 'Barang Baru')";
-                    SqlCommand cmdLog = new SqlCommand(queryRiwayat, conn);
-                    cmdLog.Parameters.AddWithValue("@id", txtID.Text);
-                    cmdLog.Parameters.AddWithValue("@nm", txtNama.Text);
-                    cmdLog.Parameters.AddWithValue("@st", txtStok.Text);
-                    cmdLog.ExecuteNonQuery();
+                    if ((int)outRows.Value == -1)
+                    {
+                        MessageBox.Show(" ID Barang sudah ada!", "Duplikat",
+                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
 
-                    MessageBox.Show("Data Berhasil Disimpan!");
+                    MessageBox.Show(" Barang berhasil ditambahkan!", "Sukses",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    TampilData();
+                    TampilTotalBarang();
+                    BersihkanForm();
                 }
-                TampilData();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error: " + ex.Message);
+                MessageBox.Show(" Error: " + ex.Message, "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        // 3. Tombol UPDATE (Ubah Barang)
+        
+        //  TOMBOL UPDATE (sp_UpdateBarang)
+        
         private void button2_Click(object sender, EventArgs e)
         {
+            if (!ValidasiInput(cekID: true)) return;
+
+            string idSupplier = "";
+            if (cmbSupplier.SelectedValue != null)
+                idSupplier = cmbSupplier.SelectedValue.ToString();
+
             try
             {
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    string query = "UPDATE Barang SET Nama_Barang=@nm, Kategori=@kt, Harga=@hr, Stok=@st WHERE ID_Barang=@id";
-                    SqlCommand cmd = new SqlCommand(query, conn);
-                    cmd.Parameters.AddWithValue("@id", txtID.Text);
-                    cmd.Parameters.AddWithValue("@nm", txtNama.Text);
-                    cmd.Parameters.AddWithValue("@kt", txtKat.Text);
-                    cmd.Parameters.AddWithValue("@hr", txtHarga.Text);
-                    cmd.Parameters.AddWithValue("@st", txtStok.Text);
+                    SqlCommand cmd = new SqlCommand("sp_UpdateBarang", conn);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@ID_Barang", txtID.Text.Trim());
+                    cmd.Parameters.AddWithValue("@Nama_Barang", txtNama.Text.Trim());
+                    cmd.Parameters.AddWithValue("@Kategori", txtKat.Text.Trim());
+                    cmd.Parameters.AddWithValue("@Harga", decimal.Parse(txtHarga.Text.Replace(",", "")));
+                    cmd.Parameters.AddWithValue("@Stok", int.Parse(txtStok.Text));
+                    cmd.Parameters.AddWithValue("@ID_Supplier", idSupplier);
+
+                    SqlParameter outRows = new SqlParameter("@RowsAffected", SqlDbType.Int)
+                    { Direction = ParameterDirection.Output };
+                    cmd.Parameters.Add(outRows);
                     cmd.ExecuteNonQuery();
 
-                    // Catat ke Riwayat saat Update
-                    string queryRiwayat = "INSERT INTO Riwayat_Masuk (ID_Barang, Nama_Barang, Jumlah_Masuk, Keterangan) VALUES (@id, @nm, @st, 'Update Stok')";
-                    SqlCommand cmdLog = new SqlCommand(queryRiwayat, conn);
-                    cmdLog.Parameters.AddWithValue("@id", txtID.Text);
-                    cmdLog.Parameters.AddWithValue("@nm", txtNama.Text);
-                    cmdLog.Parameters.AddWithValue("@st", txtStok.Text);
-                    cmdLog.ExecuteNonQuery();
-
-                    MessageBox.Show("Sipp! Data berhasil diubah.");
-                    txtID.ReadOnly = false;
+                    MessageBox.Show(" Barang berhasil diperbarui!", "Sukses",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    TampilData();
+                    BersihkanForm();
                 }
-                TampilData();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Gagal update: " + ex.Message);
+                MessageBox.Show("Error: " + ex.Message, "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        // 4. Tombol DELETE
+        
+        //  TOMBOL HAPUS (sp_DeleteBarang)
+        
         private void button3_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrEmpty(txtID.Text))
+            if (string.IsNullOrWhiteSpace(txtID.Text))
             {
-                MessageBox.Show("Pilih dulu data yang mau dihapus di tabel!");
+                MessageBox.Show("Pilih barang terlebih dahulu.", "Peringatan",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            if (MessageBox.Show("Yakin mau hapus barang ini?", "Konfirmasi", MessageBoxButtons.YesNo) == DialogResult.Yes)
+            if (MessageBox.Show("Yakin ingin menghapus barang ini?", "Konfirmasi",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No) return;
+
+            try
             {
-                try
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
-                    using (SqlConnection conn = new SqlConnection(connectionString))
-                    {
-                        conn.Open();
-                        string query = "DELETE FROM Barang WHERE ID_Barang=@id";
-                        SqlCommand cmd = new SqlCommand(query, conn);
-                        cmd.Parameters.AddWithValue("@id", txtID.Text);
-                        cmd.ExecuteNonQuery();
-                        MessageBox.Show("Data berhasil dibuang!");
-                    }
-                    button4_Click(sender, e); // Panggil fungsi Clear
+                    conn.Open();
+                    SqlCommand cmd = new SqlCommand("sp_DeleteBarang", conn);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@ID_Barang", txtID.Text.Trim());
+
+                    SqlParameter outRows = new SqlParameter("@RowsAffected", SqlDbType.Int)
+                    { Direction = ParameterDirection.Output };
+                    cmd.Parameters.Add(outRows);
+                    cmd.ExecuteNonQuery();
+
+                    MessageBox.Show("Barang berhasil dihapus!", "Sukses",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    TampilData();
+                    TampilTotalBarang();
+                    BersihkanForm();
                 }
-                catch (Exception ex) { MessageBox.Show("Error: " + ex.Message); }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(" Error: " + ex.Message, "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        // 5. Tombol CLEAR / BACK
+        
+        private void btnCari_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtCari.Text)) { TampilData(); return; }
+
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    // Stored Procedure sp_SearchBarang
+                    SqlCommand cmd = new SqlCommand("sp_SearchBarang", conn);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@Keyword", txtCari.Text.Trim());
+
+                    DataTable dt = new DataTable();
+                    new SqlDataAdapter(cmd).Fill(dt);
+
+                    _bindingSource.DataSource = null;
+                    _bindingSource.DataSource = dt;
+                    dataGridView1.DataSource = _bindingSource;
+                    dataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("❌ Error: " + ex.Message, "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        
+        //  KLIK BARIS GRID (single click → isi textbox)
+        
+        private void dataGridView1_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0 || _sedangTampilRiwayat) return;
+
+            try
+            {
+                DataGridViewRow row = dataGridView1.Rows[e.RowIndex];
+                txtID.Text = row.Cells["ID Barang"].Value?.ToString() ?? "";
+                txtNama.Text = row.Cells["Nama Barang"].Value?.ToString() ?? "";
+                txtKat.Text = row.Cells["Kategori"].Value?.ToString() ?? "";
+                txtHarga.Text = row.Cells["Harga"].Value?.ToString() ?? "";
+                txtStok.Text = row.Cells["Stok"].Value?.ToString() ?? "";
+                txtID.ReadOnly = true;
+
+                if (cmbSupplier.Items.Count > 0)
+                    cmbSupplier.SelectedIndex = 0;
+            }
+            catch { }
+        }
+
+        
+        //  DOUBLE CLICK BARIS → Tampil Riwayat barang tersebut
+        
+        private void dataGridView1_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0 || _sedangTampilRiwayat) return;
+
+            try
+            {
+                DataGridViewRow row = dataGridView1.Rows[e.RowIndex];
+                string idBarang = row.Cells["ID Barang"].Value?.ToString() ?? "";
+                string namaBarang = row.Cells["Nama Barang"].Value?.ToString() ?? "";
+                if (!string.IsNullOrWhiteSpace(idBarang))
+                    TampilRiwayat(idBarang, namaBarang);
+            }
+            catch { }
+        }
+
         private void button4_Click(object sender, EventArgs e)
+        {
+            if (_sedangTampilRiwayat)
+                TampilData();
+            else
+                BersihkanForm();
+        }
+
+        void BersihkanForm()
         {
             txtID.Clear();
             txtNama.Clear();
@@ -143,56 +431,52 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             txtHarga.Clear();
             txtStok.Clear();
             txtID.ReadOnly = false;
-            TampilData(); 
+            if (cmbSupplier.Items.Count > 0)
+                cmbSupplier.SelectedIndex = 0;
+            txtID.Focus();
         }
 
-        // 6. Tombol VIEW (Menampilkan Riwayat Log)
-        private void button5_Click(object sender, EventArgs e)
+        private void btnKembali_Click(object sender, EventArgs e) => this.Close();
+
+        private void ValidasiAngka(object sender, KeyPressEventArgs e)
         {
-            try
-            {
-                using (SqlConnection conn = new SqlConnection(connectionString))
-                {
-                    conn.Open();
-                    // Mengambil 5 kolom agar pas (ID, Nama, Jumlah, Ket, Tanggal)
-                    string query = "SELECT ID_Barang, Nama_Barang, Jumlah_Masuk, Keterangan, Tanggal_Masuk FROM Riwayat_Masuk ORDER BY Tanggal_Masuk DESC";
-                    SqlDataAdapter da = new SqlDataAdapter(query, conn);
-                    DataTable dt = new DataTable();
-                    da.Fill(dt);
-                    dataGridView1.DataSource = dt;
-                    MessageBox.Show("Menampilkan Riwayat (Log) Transaksi");
-                }
-            }
-            catch (Exception ex) { MessageBox.Show("Gagal: " + ex.Message); }
+            if (!char.IsDigit(e.KeyChar) && e.KeyChar != (char)Keys.Back && e.KeyChar != '.')
+                e.Handled = true;
         }
 
-        
-        private void dataGridView1_CellClick(object sender, DataGridViewCellEventArgs e)
+        private void ValidasiAngkaBulat(object sender, KeyPressEventArgs e)
         {
-            
-            if (dataGridView1.ColumnCount > 5)
-            {
-                return; 
-            }
-
-            if (e.RowIndex >= 0)
-            {
-                try
-                {
-                    DataGridViewRow row = dataGridView1.Rows[e.RowIndex];
-                    txtID.Text = row.Cells[0].Value.ToString();
-                    txtNama.Text = row.Cells[1].Value.ToString();
-                    txtKat.Text = row.Cells[2].Value.ToString();
-                    txtHarga.Text = row.Cells[3].Value.ToString();
-                    txtStok.Text = row.Cells[4].Value.ToString();
-                    txtID.ReadOnly = true;
-                }
-                catch { /* Abaikan jika kolom riwayat yang diklik */ }
-            }
+            if (!char.IsDigit(e.KeyChar) && e.KeyChar != (char)Keys.Back)
+                e.Handled = true;
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private bool ValidasiInput(bool cekID)
         {
+            if (cekID && string.IsNullOrWhiteSpace(txtID.Text))
+            {
+                MessageBox.Show("ID Barang tidak boleh kosong!", "Validasi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(txtNama.Text))
+            {
+                MessageBox.Show("Nama Barang tidak boleh kosong!", "Validasi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(txtHarga.Text))
+            {
+                MessageBox.Show("Harga tidak boleh kosong!", "Validasi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(txtStok.Text))
+            {
+                MessageBox.Show("Stok tidak boleh kosong!", "Validasi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+            return true;
         }
     }
 }

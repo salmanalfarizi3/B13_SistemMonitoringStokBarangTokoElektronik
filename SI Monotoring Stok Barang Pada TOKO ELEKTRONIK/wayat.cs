@@ -1,0 +1,20 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
+{
+    public partial class wayat : Form
+    {
+        public wayat()
+        {
+            InitializeComponent();
+        }
+    }
+}
