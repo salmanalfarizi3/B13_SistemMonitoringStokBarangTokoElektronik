@@ -67,4 +67,21 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             }
         }
 
+        // 2. TOMBOL CARI & RESET
+        private void btnCari_Click(object sender, EventArgs e)
+        {
+            if (_modeInjection) return;
+            string keyword = txtCari.Text.Trim().Replace("'", "''");
+            DataView dv = new DataView(_dtSemua);
+            if (!string.IsNullOrWhiteSpace(keyword))
+                dv.RowFilter = $"[ID Barang] LIKE '%{keyword}%' OR [Nama Barang] LIKE '%{keyword}%'";
+            _bindingSource.DataSource = dv.ToTable();
+        }
+
+        private void btnReset_Click(object sender, EventArgs e)
+        {
+            txtCari.Clear();
+            MuatRiwayat();
+        }
+
        
