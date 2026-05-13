@@ -94,4 +94,32 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             frmSupplier.ShowDialog();
         }
 
-      
+       
+        //  TOMBOL 2 - KELOLA BARANG
+       
+        private void btnBarang_Click(object sender, EventArgs e)
+        {
+            ResetIdleTimer();
+            Form1 frmBarang = new Form1();
+            frmBarang.ShowDialog();
+        }
+
+        
+        //  TOMBOL 3 - LIHAT RIWAYAT
+        
+        private void btnRiwayat_Click(object sender, EventArgs e)
+        {
+            ResetIdleTimer();
+            try
+            {
+                FormRiwayat frmRiwayat = new FormRiwayat();
+                frmRiwayat.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("❌ Gagal membuka riwayat: " + ex.Message,
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
+}
