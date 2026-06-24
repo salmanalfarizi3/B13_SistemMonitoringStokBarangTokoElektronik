@@ -345,7 +345,7 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
 
         // ==========================================
         //  EVENT KLIK DATA GRID VIEW -> TEXTBOX
-        // ==========================================
+        // ==========================================nc
         private void dgvSupplier_CellClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0) return;
