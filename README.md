@@ -42,9 +42,15 @@ UPDATE
 
 riwayat dan test sqlinjection
 <img width="1020" height="582" alt="Screenshot 2026-05-13 105042" src="https://github.com/user-attachments/assets/6c1338fd-d8d8-4e26-8804-32d62905080d" />
+<img width="999" height="633" alt="Screenshot 2026-06-25 041833" src="https://github.com/user-attachments/assets/f775318f-c590-4a97-aeee-be14243bf584" />
 
-hasil
-<img width="1065" height="418" alt="Screenshot 2026-05-13 102331" src="https://github.com/user-attachments/assets/809d786e-b4b6-4ff9-b91f-62a4caa437c9" />
+
+Cetak
+<img width="944" height="651" alt="Screenshot 2026-06-25 041908" src="https://github.com/user-attachments/assets/944b5e01-2ae4-48c4-b98e-4447223855e1" />
+
+
+export excel
+<img width="957" height="822" alt="Screenshot 2026-06-25 041854" src="https://github.com/user-attachments/assets/27d23f9e-d15d-4b70-8be9-d659a1637e31" />
 
 
 
