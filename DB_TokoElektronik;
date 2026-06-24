@@ -39,3 +39,356 @@ GO
 INSERT INTO Users VALUES ('admin', 'admin123', 'Admin'), ('kasir', 'kasir123', 'Kasir');
 INSERT INTO Barang VALUES ('B001', 'Laptop Asus', 'Komputer', 8000000, 10);
 GO
+
+
+-- ============================================================
+--  DATABASE: DB_TokoElektronik
+--  FILE    : DB_TokoElektronik_FIXED.sql
+
+
+USE DB_TokoElektronik;
+GO
+
+--kolom ID_Supplier ada di Riwayat_Masuk
+
+IF NOT EXISTS (
+    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_NAME = 'Riwayat_Masuk' AND COLUMN_NAME = 'ID_Supplier'
+)
+BEGIN
+    ALTER TABLE Riwayat_Masuk ADD ID_Supplier CHAR(5) NULL;
+    PRINT '? Kolom ID_Supplier ditambahkan ke Riwayat_Masuk';
+END
+ELSE
+    PRINT '? Kolom ID_Supplier sudah ada di Riwayat_Masuk';
+GO
+
+
+--  VIEW — vw_Barang
+
+IF EXISTS (SELECT 1 FROM sys.views WHERE name = 'vw_Barang')
+    DROP VIEW vw_Barang;
+GO
+
+CREATE VIEW vw_Barang AS
+    SELECT
+        b.ID_Barang      AS [ID Barang],
+        b.Nama_Barang    AS [Nama Barang],
+        b.Kategori,
+        b.Harga,
+        b.Stok,
+        ISNULL(s.Nama_Supplier, '-') AS [Nama Supplier],
+        CASE
+            WHEN b.Stok = 0  THEN 'Habis'
+            WHEN b.Stok < 5  THEN 'Menipis'
+            WHEN b.Stok < 20 THEN 'Normal'
+            ELSE                  'Aman'
+        END AS [Status Stok]
+    FROM Barang b
+    LEFT JOIN Supplier s ON b.ID_Supplier = s.ID_Supplier;
+GO
+PRINT '? VIEW vw_Barang berhasil dibuat';
+
+-- ============================================================
+-- LANGKAH 3: VIEW — vw_RiwayatMasuk
+-- DIPERBAIKI: Digunakan oleh FormRiwayat.cs dan Form1.cs
+--             (TampilRiwayat — sebelumnya masih raw SQL JOIN)
+-- ============================================================
+IF EXISTS (SELECT 1 FROM sys.views WHERE name = 'vw_RiwayatMasuk')
+    DROP VIEW vw_RiwayatMasuk;
+GO
+
+CREATE VIEW vw_RiwayatMasuk AS
+    SELECT
+        r.ID_Riwayat                                    AS [ID Riwayat],
+        r.ID_Barang                                     AS [ID Barang],
+        r.Nama_Barang                                   AS [Nama Barang],
+        r.Jumlah_Masuk                                  AS [Jumlah Masuk],
+        r.Keterangan,
+        ISNULL(s.Nama_Supplier, '-')                    AS [Nama Supplier],
+        CONVERT(VARCHAR, r.Tanggal_Masuk, 105) + ' ' +
+        CONVERT(VARCHAR, r.Tanggal_Masuk, 108)          AS [Tanggal dan Jam]
+    FROM Riwayat_Masuk r
+    LEFT JOIN Supplier s ON r.ID_Supplier = s.ID_Supplier;
+GO
+PRINT '? VIEW vw_RiwayatMasuk berhasil dibuat';
+
+
+-- STORED PROCEDURE — sp_Login
+
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'sp_Login')
+    DROP PROCEDURE sp_Login;
+GO
+
+CREATE PROCEDURE sp_Login
+    @Username  VARCHAR(50),
+    @Password  VARCHAR(50),
+    @IsValid   BIT OUTPUT,
+    @Role      VARCHAR(20) OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT @IsValid = 1, @Role = Role
+    FROM Users
+    WHERE Username = @Username AND Password = @Password;
+
+    IF @IsValid IS NULL
+    BEGIN
+        SET @IsValid = 0;
+        SET @Role    = '';
+    END
+END
+GO
+PRINT '? SP sp_Login berhasil dibuat';
+
+
+--STORED PROCEDURE — sp_InsertBarang
+
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'sp_InsertBarang')
+    DROP PROCEDURE sp_InsertBarang;
+GO
+
+CREATE PROCEDURE sp_InsertBarang
+    @ID_Barang    VARCHAR(50),
+    @Nama_Barang  VARCHAR(100),
+    @Kategori     VARCHAR(50),
+    @Harga        DECIMAL(18,2),
+    @Stok         INT,
+    @ID_Supplier  CHAR(5),
+    @RowsAffected INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Cek duplikat ID
+    IF EXISTS (SELECT 1 FROM Barang WHERE ID_Barang = @ID_Barang)
+    BEGIN
+        SET @RowsAffected = -1;
+        RETURN;
+    END
+
+    -- Insert ke tabel Barang
+    INSERT INTO Barang (ID_Barang, Nama_Barang, Kategori, Harga, Stok, ID_Supplier)
+    VALUES (@ID_Barang, @Nama_Barang, @Kategori, @Harga, @Stok,
+            CASE WHEN @ID_Supplier = '' THEN NULL ELSE @ID_Supplier END);
+
+    -- Catat ke Riwayat_Masuk (otomatis saat barang baru ditambah)
+    INSERT INTO Riwayat_Masuk (ID_Barang, Nama_Barang, Jumlah_Masuk, Tanggal_Masuk, Keterangan, ID_Supplier)
+    VALUES (@ID_Barang, @Nama_Barang, @Stok, GETDATE(), 'Barang Baru',
+            CASE WHEN @ID_Supplier = '' THEN NULL ELSE @ID_Supplier END);
+
+    SET @RowsAffected = @@ROWCOUNT;
+END
+GO
+PRINT '? SP sp_InsertBarang berhasil dibuat';
+
+
+--STORED PROCEDURE — sp_UpdateBarang
+
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'sp_UpdateBarang')
+    DROP PROCEDURE sp_UpdateBarang;
+GO
+
+CREATE PROCEDURE sp_UpdateBarang
+    @ID_Barang    VARCHAR(50),
+    @Nama_Barang  VARCHAR(100),
+    @Kategori     VARCHAR(50),
+    @Harga        DECIMAL(18,2),
+    @Stok         INT,
+    @ID_Supplier  CHAR(5),
+    @RowsAffected INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE Barang
+    SET Nama_Barang  = @Nama_Barang,
+        Kategori     = @Kategori,
+        Harga        = @Harga,
+        Stok         = @Stok,
+        ID_Supplier  = CASE WHEN @ID_Supplier = '' THEN NULL ELSE @ID_Supplier END
+    WHERE ID_Barang = @ID_Barang;
+
+    -- Catat perubahan ke Riwayat_Masuk
+    INSERT INTO Riwayat_Masuk (ID_Barang, Nama_Barang, Jumlah_Masuk, Tanggal_Masuk, Keterangan, ID_Supplier)
+    VALUES (@ID_Barang, @Nama_Barang, @Stok, GETDATE(), 'Update Stok/Data',
+            CASE WHEN @ID_Supplier = '' THEN NULL ELSE @ID_Supplier END);
+
+    SET @RowsAffected = @@ROWCOUNT;
+END
+GO
+PRINT '? SP sp_UpdateBarang berhasil dibuat';
+
+
+--STORED PROCEDURE — sp_DeleteBarang
+
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'sp_DeleteBarang')
+    DROP PROCEDURE sp_DeleteBarang;
+GO
+
+CREATE PROCEDURE sp_DeleteBarang
+    @ID_Barang    VARCHAR(50),
+    @RowsAffected INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DELETE FROM Barang WHERE ID_Barang = @ID_Barang;
+    SET @RowsAffected = @@ROWCOUNT;
+END
+GO
+PRINT '? SP sp_DeleteBarang berhasil dibuat';
+
+
+-- LANGKAH 8: STORED PROCEDURE — sp_SearchBarang  ? BARU
+
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'sp_SearchBarang')
+    DROP PROCEDURE sp_SearchBarang;
+GO
+
+CREATE PROCEDURE sp_SearchBarang
+    @Keyword VARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+
+    SELECT * FROM vw_Barang
+    WHERE [Nama Barang] LIKE '%' + @Keyword + '%'
+       OR [ID Barang]   LIKE '%' + @Keyword + '%'
+       OR Kategori      LIKE '%' + @Keyword + '%'
+    ORDER BY [ID Barang];
+END
+GO
+PRINT '? SP sp_SearchBarang berhasil dibuat';
+
+
+-- STORED PROCEDURE — sp_CountBarang
+
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'sp_CountBarang')
+    DROP PROCEDURE sp_CountBarang;
+GO
+
+CREATE PROCEDURE sp_CountBarang
+    @Total INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT @Total = COUNT(*) FROM Barang;
+END
+GO
+PRINT '? SP sp_CountBarang berhasil dibuat';
+
+
+--  STORED PROCEDURE — sp_InsertSupplier
+
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'sp_InsertSupplier')
+    DROP PROCEDURE sp_InsertSupplier;
+GO
+
+CREATE PROCEDURE sp_InsertSupplier
+    @ID_Supplier   CHAR(5),
+    @Nama_Supplier VARCHAR(100),
+    @Alamat        VARCHAR(200),
+    @No_Telp       VARCHAR(15),
+    @RowsAffected  INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (SELECT 1 FROM Supplier WHERE ID_Supplier = @ID_Supplier)
+    BEGIN
+        SET @RowsAffected = -1;
+        RETURN;
+    END
+
+    INSERT INTO Supplier (ID_Supplier, Nama_Supplier, Alamat, No_Telp)
+    VALUES (@ID_Supplier, @Nama_Supplier, @Alamat, @No_Telp);
+
+    SET @RowsAffected = @@ROWCOUNT;
+END
+GO
+PRINT '? SP sp_InsertSupplier berhasil dibuat';
+
+
+--STORED PROCEDURE — sp_UpdateSupplier
+
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'sp_UpdateSupplier')
+    DROP PROCEDURE sp_UpdateSupplier;
+GO
+
+CREATE PROCEDURE sp_UpdateSupplier
+    @ID_Supplier   CHAR(5),
+    @Nama_Supplier VARCHAR(100),
+    @Alamat        VARCHAR(200),
+    @No_Telp       VARCHAR(15),
+    @RowsAffected  INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE Supplier
+    SET Nama_Supplier = @Nama_Supplier,
+        Alamat        = @Alamat,
+        No_Telp       = @No_Telp
+    WHERE ID_Supplier = @ID_Supplier;
+
+    SET @RowsAffected = @@ROWCOUNT;
+END
+GO
+PRINT '? SP sp_UpdateSupplier berhasil dibuat';
+
+--STORED PROCEDURE — sp_DeleteSupplier
+
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'sp_DeleteSupplier')
+    DROP PROCEDURE sp_DeleteSupplier;
+GO
+
+CREATE PROCEDURE sp_DeleteSupplier
+    @ID_Supplier  CHAR(5),
+    @RowsAffected INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Cek  Supplier masih digunakan di tabel Barang
+    IF EXISTS (SELECT 1 FROM Barang WHERE ID_Supplier = @ID_Supplier)
+    BEGIN
+        SET @RowsAffected = -2; 
+        RETURN;
+    END
+
+    DELETE FROM Supplier WHERE ID_Supplier = @ID_Supplier;
+    SET @RowsAffected = @@ROWCOUNT;
+END
+GO
+PRINT '? SP sp_DeleteSupplier berhasil dibuat';
+
+
+-- LANGKAH 13: CEK HASIL AKHIR
+
+SELECT 
+    name        AS [Nama Stored Procedure],
+    create_date AS [Tanggal Dibuat],
+    modify_date AS [Terakhir Diubah]
+FROM sys.procedures
+WHERE name LIKE 'sp_%'
+ORDER BY name;
+
+SELECT 
+    name        AS [Nama View],
+    create_date AS [Tanggal Dibuat]
+FROM sys.views
+WHERE name LIKE 'vw_%'
+ORDER BY name;
+
+PRINT '';
+PRINT '============================================================';
+PRINT '? SEMUA OBJECT DATABASE BERHASIL DIBUAT/DIPERBARUI!';
+PRINT '   - 2 VIEW    : vw_Barang, vw_RiwayatMasuk';
+PRINT '   - 9 SP      : sp_Login, sp_InsertBarang, sp_UpdateBarang,';
+PRINT '                 sp_DeleteBarang, sp_SearchBarang,';
+PRINT '                 sp_CountBarang, sp_InsertSupplier,';
+PRINT '                 sp_UpdateSupplier, sp_DeleteSupplier';
+PRINT '============================================================';
