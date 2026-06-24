@@ -507,7 +507,7 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                 MessageBox.Show("Nama Barang tidak boleh mengandung simbol/karakter unik!", "Validasi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
-            // Kategori opsional, namun jika diisi harus berupa alfanumerik
+            // Kategori opsional, namun jika diisi harus berupa alfanumerikp
             if (!string.IsNullOrWhiteSpace(txtKat.Text) && !regexAlfanumerik.IsMatch(txtKat.Text))
             {
                 MessageBox.Show("Kategori tidak boleh mengandung simbol/karakter unik!", "Validasi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
