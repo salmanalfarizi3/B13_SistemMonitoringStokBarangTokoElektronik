@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.Data.SqlClient;
+using System.Text.RegularExpressions; // Ditambahkan untuk mendukung fungsi Regex
 using System.Windows.Forms;
 
 namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
@@ -36,9 +37,9 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             dataGridView1.CellDoubleClick += dataGridView1_CellDoubleClick;
         }
 
-        
+
         //  MUAT SUPPLIER KE COMBOBOX
-        
+
         void MuatSupplierKeComboBox()
         {
             try
@@ -72,10 +73,10 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             }
         }
 
-        
+
         //  PastikanViewAda() — TAMBAH KOLOM Status Stok
         //  Sesuaikan dengan ALTER VIEW di database SQL
-  
+
         void PastikanViewAda()
         {
             try
@@ -89,7 +90,7 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                         "IF EXISTS (SELECT 1 FROM sys.views WHERE name='vw_Barang') DROP VIEW vw_Barang;",
                         conn).ExecuteNonQuery();
 
-                    
+
                     string sqlView = @"
                         CREATE VIEW vw_Barang AS
                         SELECT 
@@ -114,9 +115,9 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             catch { }
         }
 
-        
+
         //  TAMPIL DATA BARANG (menggunakan VIEW)
-        
+
         void TampilData()
         {
             _sedangTampilRiwayat = false;
@@ -145,9 +146,9 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             }
         }
 
-        
+
         //  PERBAIKAN 2: TampilRiwayat() — Gunakan vw_RiwayatMasuk
-       
+
         void TampilRiwayat(string idBarang, string namaBarang)
         {
             _sedangTampilRiwayat = true;
@@ -159,7 +160,7 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                 {
                     conn.Open();
 
-                    
+
                     string sql = @"
                         SELECT * FROM vw_RiwayatMasuk
                         WHERE [ID Barang] = @ID
@@ -184,9 +185,9 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             }
         }
 
-        
+
         //  TAMPIL TOTAL BARANG (menggunakan Stored Procedure)
-        
+
         void TampilTotalBarang()
         {
             try
@@ -206,9 +207,9 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             catch { }
         }
 
-        
+
         //  TOMBOL TAMBAH (sp_InsertBarang)
-        
+
         private void button1_Click(object sender, EventArgs e)
         {
             if (!ValidasiInput(cekID: true)) return;
@@ -231,12 +232,13 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                     cmd.Parameters.AddWithValue("@Stok", int.Parse(txtStok.Text));
                     cmd.Parameters.AddWithValue("@ID_Supplier", idSupplier);
 
+                    // Menyesuaikan parameter output RowsAffected yang dilempar dari Stored Procedure
                     SqlParameter outRows = new SqlParameter("@RowsAffected", SqlDbType.Int)
                     { Direction = ParameterDirection.Output };
                     cmd.Parameters.Add(outRows);
                     cmd.ExecuteNonQuery();
 
-                    if ((int)outRows.Value == -1)
+                    if (outRows.Value != DBNull.Value && (int)outRows.Value == -1)
                     {
                         MessageBox.Show(" ID Barang sudah ada!", "Duplikat",
                             MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -257,12 +259,12 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             }
         }
 
-        
+
         //  TOMBOL UPDATE (sp_UpdateBarang)
-        
+
         private void button2_Click(object sender, EventArgs e)
         {
-            if (!ValidasiInput(cekID: true)) return;
+            if (!ValidasiInput(cekID: false)) return; // Diubah ke false jika ID bersifat ReadOnly saat update
 
             string idSupplier = "";
             if (cmbSupplier.SelectedValue != null)
@@ -300,9 +302,9 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             }
         }
 
-        
+
         //  TOMBOL HAPUS (sp_DeleteBarang)
-        
+
         private void button3_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(txtID.Text))
@@ -343,7 +345,7 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             }
         }
 
-        
+
         private void btnCari_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(txtCari.Text)) { TampilData(); return; }
@@ -374,9 +376,9 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             }
         }
 
-        
+
         //  KLIK BARIS GRID (single click → isi textbox)
-        
+
         private void dataGridView1_CellClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0 || _sedangTampilRiwayat) return;
@@ -391,15 +393,24 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                 txtStok.Text = row.Cells["Stok"].Value?.ToString() ?? "";
                 txtID.ReadOnly = true;
 
-                if (cmbSupplier.Items.Count > 0)
+                // Mencocokkan ComboBox dengan Supplier milik barang yang dipilih
+                string namaSupplierGrid = row.Cells["Nama Supplier"].Value?.ToString() ?? "-";
+                if (namaSupplierGrid == "-")
+                {
                     cmbSupplier.SelectedIndex = 0;
+                }
+                else
+                {
+                    cmbSupplier.SelectedIndex = cmbSupplier.FindStringExact(namaSupplierGrid);
+                    if (cmbSupplier.SelectedIndex == -1) cmbSupplier.SelectedIndex = 0;
+                }
             }
             catch { }
         }
 
-        
+
         //  DOUBLE CLICK BARIS → Tampil Riwayat barang tersebut
-        
+
         private void dataGridView1_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0 || _sedangTampilRiwayat) return;
@@ -441,6 +452,7 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
         private void ValidasiAngka(object sender, KeyPressEventArgs e)
         {
             if (!char.IsDigit(e.KeyChar) && e.KeyChar != (char)Keys.Back && e.KeyChar != '.')
+                // Membiarkan input angka, backspace, dan titik desimal
                 e.Handled = true;
         }
 
@@ -450,32 +462,58 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                 e.Handled = true;
         }
 
+        // METHOD VALIDASI BARU (ANTI-SIMBOL & HARUS PILIH SUPPLIER)
         private bool ValidasiInput(bool cekID)
         {
+            // 1. Validasi Input Kosong
             if (cekID && string.IsNullOrWhiteSpace(txtID.Text))
             {
-                MessageBox.Show("ID Barang tidak boleh kosong!", "Validasi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("ID Barang tidak boleh kosong!", "Validasi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
             if (string.IsNullOrWhiteSpace(txtNama.Text))
             {
-                MessageBox.Show("Nama Barang tidak boleh kosong!", "Validasi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Nama Barang tidak boleh kosong!", "Validasi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
             if (string.IsNullOrWhiteSpace(txtHarga.Text))
             {
-                MessageBox.Show("Harga tidak boleh kosong!", "Validasi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Harga tidak boleh kosong!", "Validasi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
             if (string.IsNullOrWhiteSpace(txtStok.Text))
             {
-                MessageBox.Show("Stok tidak boleh kosong!", "Validasi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Stok tidak boleh kosong!", "Validasi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
+
+            // 2. Validasi Pilih Supplier (Menolak "-- Pilih Supplier --")
+            if (cmbSupplier.SelectedValue == null || string.IsNullOrEmpty(cmbSupplier.SelectedValue.ToString()))
+            {
+                MessageBox.Show("Silakan pilih Supplier terlebih dahulu!", "Validasi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            // 3. Validasi Blokir Karakter Unik (Hanya Alfanumerik dan Spasi)
+            Regex regexAlfanumerik = new Regex(@"^[a-zA-Z0-9\s]+$");
+
+            if (cekID && !regexAlfanumerik.IsMatch(txtID.Text))
+            {
+                MessageBox.Show("ID Barang tidak boleh mengandung simbol/karakter unik!", "Validasi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+            if (!regexAlfanumerik.IsMatch(txtNama.Text))
+            {
+                MessageBox.Show("Nama Barang tidak boleh mengandung simbol/karakter unik!", "Validasi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+            // Kategori opsional, namun jika diisi harus berupa alfanumerik
+            if (!string.IsNullOrWhiteSpace(txtKat.Text) && !regexAlfanumerik.IsMatch(txtKat.Text))
+            {
+                MessageBox.Show("Kategori tidak boleh mengandung simbol/karakter unik!", "Validasi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
             return true;
         }
     }

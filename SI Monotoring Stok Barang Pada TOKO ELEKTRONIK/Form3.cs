@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.Data.SqlClient;
+using System.Text.RegularExpressions; // Diperlukan untuk mendeteksi karakter unik
 using System.Windows.Forms;
 
 namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
@@ -11,12 +12,12 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             @"Data Source=LAPTOP-ANV5L9LG\ALFA; Initial Catalog=DB_TokoElektronik; " +
             @"Integrated Security=True; TrustServerCertificate=True";
 
-        private const int ID_MAX = 10;
+        private const int ID_MAX = 6;
         private const int NAMA_MIN = 2;
-        private const int NAMA_MAX = 100;
-        private const int ALAMAT_MAX = 200;
+        private const int NAMA_MAX = 16;
+        private const int ALAMAT_MAX = 24;
         private const int TELP_MIN = 9;
-        private const int TELP_MAX = 15;
+        private const int TELP_MAX = 13;
 
         private BindingSource _bindingSource = new BindingSource();
 
@@ -24,15 +25,22 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
         {
             InitializeComponent();
 
-       
             dgvSupplier.AutoGenerateColumns = true;
-
             dgvSupplier.DataSource = null;
             dgvSupplier.DataSource = _bindingSource;
 
             bindingNavigator3.BindingSource = _bindingSource;
 
-            // Validasi No. Telepon
+            // 1. Validasi ID Supplier (Hanya boleh Huruf dan Angka, TANPA karakter unik/spasi)
+            txtIDSupp.KeyPress += (s, e) =>
+            {
+                if (!char.IsLetterOrDigit(e.KeyChar) && e.KeyChar != (char)Keys.Back)
+                {
+                    e.Handled = true;
+                }
+            };
+
+            // 2. Validasi No. Telepon (Hanya angka, backspace, +, dan -)
             txtTelp.KeyPress += (s, e) =>
             {
                 if (!char.IsDigit(e.KeyChar) && e.KeyChar != (char)Keys.Back
@@ -40,14 +48,33 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                     e.Handled = true;
             };
 
+            // 3. Validasi Real-time Nama (Mencegah ketik karakter unik, hanya huruf, angka, dan spasi)
+            txtNamaSupp.KeyPress += (s, e) =>
+            {
+                if (!char.IsLetterOrDigit(e.KeyChar) && !char.IsWhiteSpace(e.KeyChar) && e.KeyChar != (char)Keys.Back)
+                {
+                    e.Handled = true;
+                }
+            };
+
+            // 4. Validasi Real-time Alamat (Mencegah ketik karakter unik selain huruf, angka, spasi, titik, koma, garis miring)
+            txtAlamat.KeyPress += (s, e) =>
+            {
+                if (!char.IsLetterOrDigit(e.KeyChar) && !char.IsWhiteSpace(e.KeyChar) &&
+                    e.KeyChar != (char)Keys.Back && e.KeyChar != '.' && e.KeyChar != ',' && e.KeyChar != '/')
+                {
+                    e.Handled = true;
+                }
+            };
+
             this.Shown += (s, e) => TampilSupplier();
         }
 
         private void Form3_Load(object sender, EventArgs e) { }
 
-      
-        //  TAMPIL SUPPLIER
-        
+        // ==========================================
+        //  METHOD TAMPIL SUPPLIER
+        // ==========================================
         void TampilSupplier()
         {
             try
@@ -75,12 +102,14 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             }
         }
 
-        //  VALIDASI INPUT
- 
+        // ==========================================
+        //  METHOD VALIDASI INPUT (ANTI KARAKTER UNIK)
+        // ==========================================
         private bool ValidasiInput(bool cekID = true)
         {
             string id = txtIDSupp.Text.Trim();
             string nama = txtNamaSupp.Text.Trim();
+            string alamat = txtAlamat.Text.Trim();
             string telp = txtTelp.Text.Trim();
 
             if (cekID)
@@ -97,8 +126,16 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     txtIDSupp.Focus(); return false;
                 }
+                // Proteksi Copy-Paste ID Supplier (Hanya huruf dan angka)
+                if (!Regex.IsMatch(id, @"^[a-zA-Z0-9]+$"))
+                {
+                    MessageBox.Show("ID Supplier tidak boleh mengandung karakter unik, simbol, atau spasi!", "Validasi",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    txtIDSupp.Focus(); return false;
+                }
             }
 
+            // --- Validasi Nama Supplier ---
             if (string.IsNullOrWhiteSpace(nama))
             {
                 MessageBox.Show(" Nama Supplier tidak boleh kosong!", "Validasi",
@@ -111,12 +148,30 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtNamaSupp.Focus(); return false;
             }
-            if (txtAlamat.Text.Trim().Length > ALAMAT_MAX)
+            // Proteksi Copy-Paste Nama (Hanya huruf, angka, dan spasi)
+            if (!Regex.IsMatch(nama, @"^[a-zA-Z0-9 ]+$"))
+            {
+                MessageBox.Show("Nama Supplier tidak boleh mengandung karakter unik atau simbol!", "Validasi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtNamaSupp.Focus(); return false;
+            }
+
+            // --- Validasi Alamat ---
+            if (alamat.Length > ALAMAT_MAX)
             {
                 MessageBox.Show($"Alamat maksimal {ALAMAT_MAX} karakter!", "Validasi",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtAlamat.Focus(); return false;
             }
+            // Proteksi Copy-Paste Alamat (Perbaikan Variabel Error Terbaca Sistem)
+            if (!string.IsNullOrEmpty(alamat) && !Regex.IsMatch(alamat, @"^[a-zA-Z0-9 .,/]+$"))
+            {
+                MessageBox.Show("Alamat tidak boleh mengandung karakter unik/simbol selain tanda baca (. , /)!", "Validasi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtAlamat.Focus(); return false;
+            }
+
+            // --- Validasi No Telepon ---
             if (string.IsNullOrWhiteSpace(telp) || telp.Length < TELP_MIN || telp.Length > TELP_MAX)
             {
                 MessageBox.Show($"No. Telepon harus {TELP_MIN}–{TELP_MAX} karakter!", "Validasi",
@@ -127,8 +182,6 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             return true;
         }
 
-        
-        //  TAMBAH SUPPLIER
         
         private void btnInsert_Click(object sender, EventArgs e)
         {
@@ -170,8 +223,9 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             }
         }
 
-        //  UPDATE SUPPLIER
-        
+        // ==========================================
+        //  BUTTON UPDATE SUPPLIER
+        // ==========================================
         private void btnUpdate_Click(object sender, EventArgs e) => UpdateProses();
 
         void UpdateProses()
@@ -221,8 +275,9 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             }
         }
 
-                //  HAPUS SUPPLIER
-        
+        // ==========================================
+        //  BUTTON HAPUS SUPPLIER
+        // ==========================================
         private void btnDelete_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(txtIDSupp.Text))
@@ -271,9 +326,9 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             }
         }
 
-        
-        //  BERSIHKAN FORM
-        
+        // ==========================================
+        //  BUTTON BERSIHKAN FORM & KEMBALI
+        // ==========================================
         private void btnClear_Click(object sender, EventArgs e) => BersihkanForm();
 
         void BersihkanForm()
@@ -288,9 +343,9 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
 
         private void btnBack_Click(object sender, EventArgs e) => this.Close();
 
-        
-        //  KLIK BARIS GRID → ISI TEXTBOX
-        
+        // ==========================================
+        //  EVENT KLIK DATA GRID VIEW -> TEXTBOX
+        // ==========================================
         private void dgvSupplier_CellClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0) return;
@@ -298,7 +353,6 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
             try
             {
                 DataGridViewRow row = dgvSupplier.Rows[e.RowIndex];
-                // Nama kolom sesuai alias di query: [ID Supplier], [Nama Supplier], dll
                 txtIDSupp.Text = row.Cells["ID Supplier"].Value?.ToString() ?? "";
                 txtNamaSupp.Text = row.Cells["Nama Supplier"].Value?.ToString() ?? "";
                 txtAlamat.Text = row.Cells["Alamat"].Value?.ToString() ?? "";

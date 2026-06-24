@@ -94,7 +94,7 @@
             this.Controls.Add(this.button1);
             this.Controls.Add(this.label1);
             this.Name = "FormMenu";
-            this.Text = "menuu";
+            this.Text = "menu";
             this.Load += new System.EventHandler(this.FormMenu_Load_1);
             this.ResumeLayout(false);
             this.PerformLayout();

@@ -65,7 +65,7 @@ namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
         {
             _idleTimer.Stop();
             _idleTimer.Dispose();
-            Form2 frmLogin = new Form2();
+            Login frmLogin = new Login();
             frmLogin.Show();
             this.Close();
         }

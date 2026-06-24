@@ -41,6 +41,8 @@
             this.bindingNavigatorMoveLastItem = new System.Windows.Forms.ToolStripButton();
             this.bindingNavigatorSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.btnTestInjection = new System.Windows.Forms.Button();
+            this.btnExportRiwayat = new System.Windows.Forms.Button();
+            this.btncetak = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.dgvRiwayat)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dBTokoElektronikDataSetBindingSource)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dB_TokoElektronikDataSet)).BeginInit();
@@ -273,9 +275,29 @@
             this.btnTestInjection.Name = "btnTestInjection";
             this.btnTestInjection.Size = new System.Drawing.Size(98, 31);
             this.btnTestInjection.TabIndex = 11;
-            this.btnTestInjection.Text = "test injection";
+            this.btnTestInjection.Text = " injection";
             this.btnTestInjection.UseVisualStyleBackColor = true;
             this.btnTestInjection.Click += new System.EventHandler(this.btnTestInjection_Click);
+            // 
+            // btnExportRiwayat
+            // 
+            this.btnExportRiwayat.Location = new System.Drawing.Point(477, 123);
+            this.btnExportRiwayat.Name = "btnExportRiwayat";
+            this.btnExportRiwayat.Size = new System.Drawing.Size(143, 23);
+            this.btnExportRiwayat.TabIndex = 12;
+            this.btnExportRiwayat.Text = "Export ke Excel";
+            this.btnExportRiwayat.UseVisualStyleBackColor = true;
+            this.btnExportRiwayat.Click += new System.EventHandler(this.btnExportRiwayat_Click);
+            // 
+            // btncetak
+            // 
+            this.btncetak.Location = new System.Drawing.Point(802, 123);
+            this.btncetak.Name = "btncetak";
+            this.btncetak.Size = new System.Drawing.Size(113, 30);
+            this.btncetak.TabIndex = 13;
+            this.btncetak.Text = "Cetak";
+            this.btncetak.UseVisualStyleBackColor = true;
+            this.btncetak.Click += new System.EventHandler(this.btnCetak_Click);
             // 
             // FormRiwayat
             // 
@@ -283,6 +305,8 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.SteelBlue;
             this.ClientSize = new System.Drawing.Size(1013, 569);
+            this.Controls.Add(this.btncetak);
+            this.Controls.Add(this.btnExportRiwayat);
             this.Controls.Add(this.btnTestInjection);
             this.Controls.Add(this.bindingNavigator1);
             this.Controls.Add(this.label2);
@@ -333,5 +357,7 @@
         private System.Windows.Forms.BindingSource dBTokoElektronikDataSetBindingSource;
         private DB_TokoElektronikDataSet dB_TokoElektronikDataSet;
         private System.Windows.Forms.Button btnTestInjection;
+        private System.Windows.Forms.Button btnExportRiwayat;
+        private System.Windows.Forms.Button btncetak;
     }
 }

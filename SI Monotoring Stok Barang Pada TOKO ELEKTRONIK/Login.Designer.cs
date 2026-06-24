@@ -1,6 +1,6 @@
 ﻿namespace SI_Monotoring_Stok_Barang_Pada_TOKO_ELEKTRONIK
 {
-    partial class Form2
+    partial class Login
     {
         /// <summary>
         /// Required designer variable.
@@ -102,7 +102,7 @@
             this.label3.TabIndex = 7;
             this.label3.Text = "MAXIMA ELECTRONICA";
             // 
-            // Form2
+            // Login
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -114,8 +114,8 @@
             this.Controls.Add(this.label1);
             this.Controls.Add(this.textBox2);
             this.Controls.Add(this.textBox1);
-            this.Name = "Form2";
-            this.Text = "Form2";
+            this.Name = "Login";
+            this.Text = "Halaman Login";
             this.Load += new System.EventHandler(this.Form2_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
